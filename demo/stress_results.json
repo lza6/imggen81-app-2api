@@ -1,0 +1,27 @@
+[
+  {
+    "name": "S1 health x30",
+    "ok": true,
+    "detail": "median 1.4ms p95 11.6ms"
+  },
+  {
+    "name": "S2 错误路径",
+    "ok": true,
+    "detail": "空prompt=400 空白prompt=400 不存在任务=404"
+  },
+  {
+    "name": "S3 限流探测",
+    "ok": false,
+    "detail": "结果 [(3, 502, 1076), (2, 502, 1975), (1, 502, 1266), (0.5, 502, 1576), (0.2, 502, 1511), (0, 502, 1098)]"
+  },
+  {
+    "name": "S4 本地 20线程x3",
+    "ok": true,
+    "detail": "60 req 796ms wall, median 28.1ms, err=0"
+  },
+  {
+    "name": "S5 上游 3 并发",
+    "ok": false,
+    "detail": "[(502, 1068), (502, 1688), (502, 1703)] wall 2s"
+  }
+]

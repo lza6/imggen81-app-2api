@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhotoFlux AI 逆向 Demo — AI_Image_Generator 81.0</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--bd:#30363d;--tx:#e6edf3;--dim:#8b949e;--acc:#58a6ff;--ok:#3fb950;--bad:#f85149}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font:14px/1.6 "Segoe UI",system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px}
+h1{font-size:22px;margin-bottom:4px}h1 span{color:var(--acc)}
+.sub{color:var(--dim);font-size:12px;margin-bottom:20px}
+.wrap{width:100%;max-width:960px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:16px}
+.card h2{font-size:15px;margin-bottom:12px;color:var(--acc)}
+label{display:block;font-size:12px;color:var(--dim);margin:8px 0 4px}
+textarea,input,select{width:100%;background:#0d1117;border:1px solid var(--bd);color:var(--tx);border-radius:6px;padding:8px 10px;font-size:13px}
+textarea{resize:vertical;min-height:64px}
+button{margin-top:12px;width:100%;background:var(--acc);border:0;color:#04121f;font-weight:600;padding:10px;border-radius:6px;cursor:pointer;font-size:14px}
+button:disabled{opacity:.5;cursor:wait}
+button.sec{background:#21262d;color:var(--tx);border:1px solid var(--bd)}
+.imgbox{margin-top:12px;border:1px dashed var(--bd);border-radius:8px;min-height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#010409}
+.imgbox img{max-width:100%;max-height:420px}
+.meta{font-size:11px;color:var(--dim);margin-top:6px;word-break:break-all}
+.log{font-family:Consolas,monospace;font-size:11px;background:#010409;border-radius:6px;padding:10px;max-height:160px;overflow-y:auto;margin-top:10px;color:var(--dim)}
+.log b{color:var(--ok)}.log i{color:var(--bad);font-style:normal}
+.health{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--dim)}
+.chip b{color:var(--ok)}
+</style>
+</head>
+<body>
+<h1>PhotoFlux AI <span>逆向 Demo 网关</span></h1>
+<div class="sub">APK: com.technosub.unlimitedaiimagen v81.0 (xs_fixed) · 端口 8921 · 上游协议逆向自 jadx + 活体探测</div>
+<div class="health">
+  <span class="chip">网关 <b id="h-gw">—</b></span>
+  <span class="chip">pollinations <b id="h-pol">—</b></span>
+  <span class="chip">bria-rmbg <b id="h-bria">—</b></span>
+  <span class="chip">img2go credits <b id="h-cred">—</b></span>
+</div>
+<div class="wrap">
+  <div class="card">
+    <h2>🎨 文生图（pollinations · flux · 免鉴权）</h2>
+    <label>Prompt</label>
+    <textarea id="prompt" placeholder="例：赛博朋克城市夜晚，霓虹雨">a majestic lion in golden savanna, sunset</textarea>
+    <label>比例（逆向自 APK 内部尺寸表）</label>
+    <select id="ratio">
+      <option value="1">1 · 1024×1024 方形</option>
+      <option value="4">4 · 1024×1344 竖版</option>
+      <option value="5">5 · 1344×1024 横版</option>
+      <option value="6">6 · 896×1120</option>
+      <option value="7">7 · 1120×896</option>
+      <option value="8">8 · 832×1248 竖版大</option>
+      <option value="9">9 · 1248×832 横版大</option>
+      <option value="10">10 · 1536×640 超宽</option>
+      <option value="11">11 · 640×1536 超高</option>
+    </select>
+    <label>模型</label>
+    <select id="model"><option>flux</option><option>flux-realism</option><option>turbo</option></select>
+    <button id="btn-gen" onclick="gen()">生成图像</button>
+    <div class="imgbox" id="box-gen"><span style="color:var(--dim)">等待生成…</span></div>
+    <div class="meta" id="meta-gen"></div>
+  </div>
+  <div class="card">
+    <h2>✂️ 抠图 / 移除背景（BRIA RMBG-2.0 · HF Space）</h2>
+    <input type="file" id="rmbg-file" accept="image/*">
+    <button class="sec" onclick="rmbg()">上传并抠图</button>
+    <div class="imgbox" id="box-rmbg"><span style="color:var(--dim)">选择图片后点击</span></div>
+    <div class="meta" id="meta-rmbg"></div>
+    <h2 style="margin-top:18px">📊 img2go 匿名额度（credit-bank）</h2>
+    <button class="sec" onclick="credits()">查询每日免费额度</button>
+    <div class="log" id="log-cred">未查询</div>
+  </div>
+</div>
+<div class="card" style="width:100%;max-width:960px;margin-top:16px">
+  <h2>⚡ 网关统计 /v1/stats</h2>
+  <div class="log" id="log-stats">—</div>
+</div>
+<script>
+const B='';
+async function j(p,o){const r=await fetch(B+p,o);return{c:r.status,d:await r.json().catch(()=>({}))}}
+function log(id,html){document.getElementById(id).innerHTML=html}
+async function refresh(){
+  try{const{d}=await j('/health');document.getElementById('h-gw').textContent='up'}catch{document.getElementById('h-gw').textContent='down'}
+  try{const{d}=await j('/v1/stats');document.getElementById('h-pol').textContent=`ok ${d.pollinations?.ok??0} / fail ${d.pollinations?.fail??0}`;
+    log('log-stats',JSON.stringify(d,null,1))}catch{}
+  try{const{d}=await j('/v1/img2go/credits');document.getElementById('h-cred').textContent=`balance ${d.free_renewal_account?.balance??'?'}/${d.free_renewal_account?.total??'?'}`;
+    log('log-cred',JSON.stringify(d.free_renewal_account??d,null,1))}catch{document.getElementById('h-cred').textContent='down'}
+}
+async function gen(){
+  const p=document.getElementById('prompt').value.trim();
+  if(!p)return alert('请输入 prompt');
+  const btn=document.getElementById('btn-gen');btn.disabled=true;btn.textContent='生成中（上游约 8-20s）…';
+  document.getElementById('box-gen').innerHTML='<span style="color:var(--dim)">生成中…</span>';
+  const t=Date.now();
+  try{
+    const{c,d}=await j('/v1/images/generations',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:p,ratio:document.getElementById('ratio').value,model:document.getElementById('model').value})});
+    if(c!==200)throw new Error(d.error||c);
+    const url='data:image/jpeg;base64,'+d.data[0].b64_json;
+    document.getElementById('box-gen').innerHTML=`<img src="${url}">`;
+    document.getElementById('meta-gen').textContent=
+      `✅ ${d.data[0].size} · seed=${d.data[0].seed} · 上游 ${d.data[0].upstream_ms}ms · 总 ${(Date.now()-t)/1000|0}s · ${(d.data[0].bytes/1024)|0}KB`;
+  }catch(e){document.getElementById('box-gen').innerHTML='<span style="color:var(--bad)">失败：'+e.message+'（上游限流会自动退避重试，稍后再试）</span>'}
+  btn.disabled=false;btn.textContent='生成图像';refresh();
+}
+async function rmbg(){
+  const f=document.getElementById('rmbg-file').files[0];
+  if(!f)return alert('请选择图片');
+  const box=document.getElementById('box-rmbg');box.innerHTML='<span style="color:var(--dim)">上传+推理中…</span>';
+  const t=Date.now();
+  try{
+    const r=await fetch(B+'/v1/images/remove-bg',{method:'POST',body:await f.arrayBuffer()});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||r.status);
+    box.innerHTML=`<img src="data:image/png;base64,${d.image_b64}" style="background:repeating-conic-gradient(#222 0% 25%,#333 0% 50%) 50%/16px">`;
+    document.getElementById('meta-rmbg').textContent=`✅ ${(d.bytes/1024)|0}KB · 上游 ${d.upstream_ms}ms`;
+  }catch(e){box.innerHTML='<span style="color:var(--bad)">失败：'+e.message+'</span>'}
+  refresh();
+}
+async function credits(){await refresh()}
+refresh();setInterval(refresh,10000);
+</script>
+</body>
+</html>
