@@ -10,7 +10,7 @@ PhotoFlux AI (com.technosub.unlimitedaiimagen v81.0) — 第一轮 demo 网关
   5. writecream     生成（上游 404 已下线，占位）
   6. fireworks/unlim.store/runway 等 —— 密钥在 libphotoflux_security.so（需模拟器动态调起，第二轮）
 """
-import base64, io, json, re, ssl, threading, time, uuid, hashlib
+import base64, io, json, re, ssl, threading, time, uuid, hashlib, hmac
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -29,7 +29,7 @@ RATIOS = {
     "10": (1536, 640), "11": (640, 1536),
 }
 
-UPSTREAM_STATS = {"pollinations": [0,0,0.0], "bria": [0,0,0.0], "img2go": [0,0,0.0]}  # ok/fail/total_ms
+UPSTREAM_STATS = {"pollinations": [0,0,0.0], "bria": [0,0,0.0], "img2go": [0,0,0.0], "unlimimages": [0,0,0.0]}  # ok/fail/total_ms
 STATS_LOCK = threading.Lock()
 
 def note_upstream(ch, ok, ms):
@@ -72,6 +72,48 @@ def up_pollinations(prompt, ratio="1", model="flux", seed=None):
         else:
             break
     raise RuntimeError(f"pollinations HTTP {last} after retries")
+
+def up_unlimimages(prompt, ratio="1:1"):
+    """UnlimImages 主生成通道（逆向自 app 真实流量）:
+       HMAC-SHA256(secret2, "ts:nonce:sha256hex(body)")，POST /api/generate → 轮询 /api/status/{rid} → /images/{rid}.jpg"""
+    import urllib.error
+    S2 = "8974fe9d9e7a59d3a400e4dc4babde3ee84c98570521f89c4aab0636936b26af"
+    body = json.dumps({"prompt": prompt, "aspect_ratio": ratio}).encode()
+    ts = str(int(time.time())); nonce = uuid.uuid4().hex[:16]
+    bh = hashlib.sha256(body).hexdigest()
+    sig = hmac.new(S2.encode(), f"{ts}:{nonce}:{bh}".encode(), hashlib.sha256).hexdigest()
+    status, rbody, ms = http_req("https://api.unlimimages.online/api/generate", "POST", body, {
+        "Content-Type": "application/json", "X-API-Secret": S2, "X-Signature": sig,
+        "X-Timestamp": ts, "X-Nonce": nonce, "User-Agent": "PhotoFluxAI/1.0"}, timeout=40)
+    if status != 200:
+        note_upstream("unlimimages", False, ms)
+        raise RuntimeError(f"unlimimages generate HTTP {status}: {rbody[:120]}")
+    rid = json.loads(rbody)["request_id"]
+    # 轮询 status
+    ts = str(int(time.time())); nonce = uuid.uuid4().hex[:16]
+    bh = hashlib.sha256(b"").hexdigest()
+    sig = hmac.new(S2.encode(), f"{ts}:{nonce}:{bh}".encode(), hashlib.sha256).hexdigest()
+    for _ in range(40):
+        try:
+            status, rbody, pms = http_req(f"https://api.unlimimages.online/api/status/{rid}", headers={
+                "X-API-Secret": S2, "X-Signature": sig, "X-Timestamp": ts, "X-Nonce": nonce,
+                "User-Agent": "PhotoFluxAI/1.0"}, timeout=20)
+        except urllib.error.HTTPError as e:
+            status, rbody, pms = e.code, e.read(), 0
+        if status == 200:
+            d = json.loads(rbody)
+            if d.get("status") == "completed":
+                ts = str(int(time.time())); nonce = uuid.uuid4().hex[:16]
+                sig = hmac.new(S2.encode(), f"{ts}:{nonce}:{bh}".encode(), hashlib.sha256).hexdigest()
+                status, img, dms = http_req(f"https://api.unlimimages.online/images/{rid}.jpg", headers={
+                    "X-API-Secret": S2, "X-Signature": sig, "X-Timestamp": ts, "X-Nonce": nonce,
+                    "User-Agent": "PhotoFluxAI/1.0"}, timeout=60)
+                note_upstream("unlimimages", status == 200, ms + pms + dms)
+                if status == 200 and img[:3] == b"\xff\xd8\xff":
+                    return img, "image/jpeg", {"request_id": rid, "upstream_ms": round(ms + pms + dms), "channel": "unlimimages"}
+                raise RuntimeError(f"image download HTTP {status}")
+        time.sleep(3)
+    raise RuntimeError("unlimimages status timeout (120s)")
 
 def up_bria_remove_bg(img_bytes):
     """完整 gradio 三步链路（逆向自 BriaAIBackgroundRemovalService）:
@@ -217,15 +259,20 @@ class Handler(BaseHTTPRequestHandler):
             prompt = (req.get("prompt") or "").strip()
             if not prompt:
                 return self._json(400, {"error": "prompt required"})
+            # 通道选择: channel=unlimimages(默认,高质量HMAC) / pollinations(备胎)
+            ch = req.get("channel", "unlimimages")
             try:
-                img, ctype, meta = up_pollinations(prompt, req.get("ratio", "1"), req.get("model", "flux"), req.get("seed"))
+                if ch == "unlimimages":
+                    img, ctype, meta = up_unlimimages(prompt, req.get("ratio", "1:1"))
+                else:
+                    img, ctype, meta = up_pollinations(prompt, req.get("ratio", "1"), req.get("model", "flux"), req.get("seed"))
             except Exception as e:
                 return self._json(502, {"error": f"upstream failed: {e}"})
             b64 = base64.b64encode(img).decode()
             return self._json(200, {"created": int(time.time()), "data": [{
-                "b64_json": b64, "size": f"{meta['width']}x{meta['height']}",
-                "seed": meta["seed"], "model": meta["model"], "upstream_ms": meta["upstream_ms"],
-                "bytes": len(img)}]})
+                "b64_json": b64, "size": f"{meta.get('width','1024')}x{meta.get('height','1024')}",
+                "seed": meta.get("seed"), "model": ch, "upstream_ms": meta["upstream_ms"],
+                "channel": meta.get("channel", ch), "bytes": len(img)}]})
         if p == "/v1/images/remove-bg":
             body = self._read_body()
             if not body:

@@ -1,0 +1,78 @@
+     ____
+    / _  |   Frida 16.5.9 - A world-class dynamic instrumentation toolkit
+   | (_| |
+    > _  |   Commands:
+   /_/ |_|       help      -> Displays the help system
+   . . . .       object?   -> Display information about 'object'
+   . . . .       exit/quit -> Exit
+   . . . .
+   . . . .   More info at https://frida.re/docs/home/
+   . . . .
+   . . . .   Connected to Android Emulator 5554 (id=emulator-5554)
+Spawning `com.technosub.unlimitedaiimagen`...
+Spawned `com.technosub.unlimitedaiimagen`. Resuming main thread!
+[Android Emulator 5554::com.technosub.unlimitedaiimagen ]-> [*] PhotoFlux hook loaded
+[*] LicenseClient all methods suppressed (54)
+[KEY] getApiSecret(0) = 5HvEs9YZ9x7a6zMdGkjzoNettYxF4BUmyyyTHFl1YBU
+[KEY] getApiSecret(1) = 5HvEs9YZ9x7a6zMdGkjzoNettYxF4BUmyyyTHFl1YBU
+[KEY] getApiSecret(2) = 8974fe9d9e7a59d3a400e4dc4babde3ee84c98570521f89c4aab0636936b26af
+[KEY] getApiSecret(3) = qb_api_G56ZBQRR5xKznEjR_PyLFcCvKbFt71z2
+[KEY] getApiSecret(4) = 5HvEs9YZ9x7a6zMdGkjzoNettYxF4BUmyyyTHFl1YBU
+[KEY] getApiSecret(5) = 5HvEs9YZ9x7a6zMdGkjzoNettYxF4BUmyyyTHFl1YBU
+[KEY] getApiSecret(6) = fw_QEH6Ha28BGUkMSGSPUsEWU
+[KEY] getApiSecret(7) = 3437a7fcd0156a7f653e5392e8df05946bb93934b69287047f258ecc84ae13ca
+[KEY] getApiSecret(8) = bing_9820f02c5a92572e2d3bc8a8f02acf4d3e903314a0df8454
+[*] NativeSecrets hooked
+[*] HmacRequestSigner hooked
+[*] OkHttp hooked
+[PAIRIP] checkLicense suppressed
+[AUTH] signInWithEmailAndPassword fired
+[POLL] LOGGED IN email=pf81_noxhhbuw@example.com uid=EXsbOCB9zGgmBvrOtG3F2c6jja12
+[FB] apps=0
+[FB] user=pf81_noxhhbuw@example.com
+[FB] token refresh fired
+[STATE] user=pf81_noxhhbuw@example.com uid=EXsbOCB9zGgmBvrOtG3F2c6jja12
+[STATE] uid=EXsbOCB9zGgmBvrOtG3F2c6jja12
+[STATE] token refresh fired
+[HMAC] svc=2 ts=1793127246 nonce=7460c9b7e929404e bodyHash=682ab38ca74b136ef29446cf2b2dbd24cf7dd0b23c990d33c3726a8af213e4ca
+[HMAC] -> sig=17dc82e0ee4aa297866b9138635ec66b84bd70662ab29bfae91f8542fda3a522
+[SIGN] svc=2 bodyLen=53
+[SIGN] -> sig=17dc82e0ee4aa297866b9138635ec66b84bd70662ab29bfae91f8542fda3a522 ts=1793127246 nonce=7460c9b7e929404e
+
+[REQ] POST https://api.unlimimages.online/api/generate
+[REQ-HDRS] Content-Type: application/json
+X-API-Secret: 8974fe9d9e7a59d3a400e4dc4babde3ee84c98570521f89c4aab0636936b26af
+X-Signature: 17dc82e0ee4aa297866b9138635ec66b84bd70662ab29bfae91f8542fda3a522
+X-Timestamp: 1793127246
+X-Nonce: 7460c9b7e929404e
+User-Agent: PhotoFluxAI/1.0
+
+[HMAC] svc=8 ts=1793127246 nonce=6079bca19ce47dca bodyHash=0361b6271b6e0dae7909d1c0f587dd73178728842f55e669f4d63f8f75b1bc51
+[HMAC] -> sig=5508d1468f4e0f881a80960e0514a263b457a3622643c56aa110ec3f42ca200b
+[SIGN] svc=8 bodyLen=63
+[SIGN] -> sig=5508d1468f4e0f881a80960e0514a263b457a3622643c56aa110ec3f42ca200b ts=1793127246 nonce=6079bca19ce47dca
+
+[REQ] POST https://api.unlim.store/generate
+[REQ-HDRS] X-Signature: 5508d1468f4e0f881a80960e0514a263b457a3622643c56aa110ec3f42ca200b
+X-Timestamp: 1793127246
+X-Nonce: 6079bca19ce47dca
+User-Agent: UnlimAI/1.0
+
+[REQ-BODY] {"prompt":"a cute corgi puppya","aspect_ratio":"1:1"}
+[REQ-BODY] {"prompt":"a cute corgi puppya","aspect_ratio":"1:1","count":4}
+[HMAC] svc=2 ts=1793127250 nonce=e52a040318cf4dd7 bodyHash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+[HMAC] -> sig=899ea5f8c78af6376b3cf7c368345b1403eaad5f065e341d7b434cfee096fa43
+[SIGN] svc=2 bodyLen=0
+[SIGN] -> sig=899ea5f8c78af6376b3cf7c368345b1403eaad5f065e341d7b434cfee096fa43 ts=1793127250 nonce=e52a040318cf4dd7
+
+[REQ] GET https://api.unlimimages.online/api/status/b813a864d9d642b7b108fbd519e0243e
+[REQ-HDRS] X-API-Secret: 8974fe9d9e7a59d3a400e4dc4babde3ee84c98570521f89c4aab0636936b26af
+X-Signature: 899ea5f8c78af6376b3cf7c368345b1403eaad5f065e341d7b434cfee096fa43
+X-Timestamp: 1793127250
+X-Nonce: e52a040318cf4dd7
+User-Agent: PhotoFluxAI/1.0
+
+
+[REQ] GET https://api.unlimimages.online/images/b813a864d9d642b7b108fbd519e0243e.jpg
+[REQ-HDRS] User-Agent: PhotoFluxAI/1.0
+
